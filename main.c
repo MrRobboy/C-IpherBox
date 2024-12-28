@@ -189,7 +189,7 @@ int main() {
         printf("  Bienvenue Mr. Trancho \n");
         printf("=============================\n");
         printf("1. Scanner une IP unique\n");
-        printf("2. Scanner un réseau entier (CIDR)\n");
+        printf("2. Scanner un réseau entier\n");
         printf("3. Quitter\n");
         printf("Choisissez une option : ");
         scanf("%d", &choix);
@@ -211,7 +211,7 @@ int main() {
             char cidr[32];
             int start_port, end_port;
 
-            printf("Entrez le réseau CIDR (ex. 192.168.1.0/24) : ");
+            printf("Entrez un réseau (ex. 192.168.1.0/24) : ");
             scanf("%s", cidr);
             printf("Entrez le port de départ : ");
             scanf("%d", &start_port);
