@@ -12,7 +12,7 @@ int main()
 	printf("\\____/      /___// .___//_/ /_/ \\___//_/   /_____/ \\____//_/|_|  \n");
 	printf("                /_/                                              \n\n");
 
-	printf("===\n1 - Compresser un fichier (tar)\n2 - Décompresser un fichier (tar)\n===\n>>> ");
+	printf("========================\n1 - Compresser un fichier (tar)\n2 - Décompresser un fichier (tar)\n========================\n>>> ");
 	char *reponse = NULL;
 	scanf("%m[^\n]", &reponse);
 	fgetc(stdin);
