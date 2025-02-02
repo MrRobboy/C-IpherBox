@@ -15,7 +15,8 @@ int main()
 	printf("========================\n1 - Compresser un fichier (tar)\n2 - Décompresser un fichier (tar)\n========================\n>>> ");
 	char *reponse = NULL;
 	scanf("%m[^\n]", &reponse);
-	fgetc(stdin);
+	while (getchar() != '\n')
+		;
 
 	if (strcmp(reponse, "1") == 0)
 	{
@@ -26,11 +27,14 @@ int main()
 
 		printf("Fichier à compresser : ");
 		scanf("%m[^\n]", &fic_a_zip);
-		fgetc(stdin);
+		while (getchar() != '\n')
+			;
 
 		printf("Nom du fichier de sortie : ");
 		scanf("%m[^\n]", &nom_sortie_temp);
-		fgetc(stdin);
+		while (getchar() != '\n')
+			;
+		printf("taille nom_sortie_temp : %lld\n", strlen(nom_sortie_temp));
 
 		if (strstr(nom_sortie_temp, ".tar") == NULL)
 		{
@@ -61,9 +65,28 @@ int main()
 			perror("Erreur d'allocation de mémoire");
 			exit(EXIT_FAILURE);
 		}
-		sprintf(cmd, "tar -cf %s %s", nom_sortie, fic_a_zip);
-		printf("Execution de la commande : %s", cmd);
-		system(cmd);
+		sprintf(cmd, "cmd.exe /c tar -cf %s %s", nom_sortie, fic_a_zip);
+		printf("Execution de la commande : %s\n", cmd);
+		printf("Avant system(cmd)...\n");
+		int result = system(cmd);
+		printf("Après system(cmd)... Code retour : %d\n", result);
+
+		if (result != 0)
+		{
+			printf("ERREUR DU CODE !");
+			free(nom_sortie);
+			nom_sortie = NULL;
+			free(nom_sortie_temp);
+			nom_sortie_temp = NULL;
+			free(fic_a_zip);
+			fic_a_zip = NULL;
+			free(cmd);
+			cmd = NULL;
+			free(reponse);
+			reponse = NULL;
+			exit(EXIT_FAILURE);
+		}
+		printf("Commande exectuée !");
 
 		free(nom_sortie);
 		nom_sortie = NULL;
@@ -98,7 +121,8 @@ int main()
 		char *fic_a_dezip = NULL;
 		printf("Fichier à décompresser : ");
 		scanf("%m[^\n]", &fic_a_dezip);
-		fgetc(stdin);
+		while (getchar() != '\n')
+			;
 		printf("fic a dezip : '%s'\n", fic_a_dezip);
 
 		cmd = malloc(1024);
@@ -113,8 +137,20 @@ int main()
 		}
 		sprintf(cmd, "tar -xf %s", fic_a_dezip);
 		printf("%s", cmd);
-		printf("\nExecution de la commande suivante : %s\n", cmd);
-		system(cmd);
+		printf("\nExecution de la commande suivante : %s\n----------\n", cmd);
+		int result = system(cmd);
+		if (result != 0)
+		{
+			printf("ERREUR DU CODE !");
+
+			free(fic_a_dezip);
+			fic_a_dezip = NULL;
+			free(cmd);
+			cmd = NULL;
+
+			exit(EXIT_FAILURE);
+		}
+		printf("Commande exectuée !");
 
 		free(fic_a_dezip);
 		fic_a_dezip = NULL;
