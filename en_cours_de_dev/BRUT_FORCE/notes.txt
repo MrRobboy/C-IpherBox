@@ -1,0 +1,11 @@
+Commande pour generer un hash MD5:
+
+- Linux (étant donné que vous etes sur Linux Mr :) ):
+echo -n "1234" | md5sum | awk '{print $1}' > target.txt 
+
+- Windows PowerShell:
+"1234" | Out-File -Encoding ASCII target.txt
+
+
+Le résultat pour 1234 :
+81dc9bdb52d04dc20036dbd8313ed055

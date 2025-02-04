@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+
+int isDirectory(const char *path)
+{
+	struct stat path_stat;
+	stat(path, &path_stat);
+	return S_ISDIR(path_stat.st_mode);
+}
 
 int main()
 {
@@ -8,7 +16,7 @@ int main()
 	char *FicCmpEntree = NULL, *FicCmpSortie = NULL, *FicCmpSortieTemp = NULL, *Cle = NULL;
 	short chiffrer = 0;
 
-	printf("Entrez le fichier à compresser : ");
+	printf("Entrez le fichier/dossier à compresser : ");
 	scanf("%m[^\n]", &FicCmpEntree);
 	if (FicCmpEntree == NULL)
 	{
@@ -17,6 +25,20 @@ int main()
 	}
 	while (getchar() != '\n')
 		;
+	printf("Tentative d'ouverture du fichier : %s\n", FicCmpEntree);
+	FILE *testFile = NULL;
+	testFile = fopen(FicCmpEntree, "r");
+	if (testFile == NULL)
+	{
+		printf("Erreur : le fichier '%s' n'existe pas.\n", FicCmpEntree);
+		free(FicCmpEntree);
+		FicCmpEntree = NULL;
+		exit(EXIT_FAILURE);
+	}
+	fclose(testFile);
+	printf("Fichier trouvé !\n");
+
+reset_nom_sortie:
 	printf("\n\nNom du fichier compressé (ex: output.huff) : ");
 	scanf("%m[^\n]", &FicCmpSortieTemp);
 	if (FicCmpSortieTemp == NULL)
@@ -29,6 +51,13 @@ int main()
 	while (getchar() != '\n')
 		;
 	printf("Taille de FicCmpSortieTemp : %lld\n", strlen(FicCmpSortieTemp));
+	if (strlen(FicCmpSortieTemp) >= 256)
+	{
+		printf("Nom du fichier de sortie trop grand ! Veuillez saisir un nom avec moins de 256 caractères.\n");
+		free(FicCmpSortieTemp);
+		FicCmpSortieTemp = NULL;
+		goto reset_nom_sortie;
+	}
 
 	if (strstr(FicCmpSortieTemp, ".huff") == NULL)
 	{
