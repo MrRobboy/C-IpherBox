@@ -78,6 +78,70 @@ Arbre *creerArbre(int capacite)
 	return heap;
 }
 
+Noeud *extraireMin(Arbre *heap)
+{
+	if (heap->taille == 0)
+	{
+		return NULL;
+	}
+
+	Noeud *minNode = heap->tableau[0];
+	heap->tableau[0] = heap->tableau[--heap->taille];
+	heapifyDown(heap, 0);
+
+	return minNode;
+}
+
+void insererArbre(Arbre *heap, Noeud *nouveauNoeud)
+{
+	if (heap->taille == heap->capacite)
+	{
+		printf("Arbre plein !\n");
+		return;
+	}
+
+	int i = heap->taille++; // Ajouter à la fin
+	heap->tableau[i] = nouveauNoeud;
+
+	heapifyUp(heap, i); // Réajuster pour garder la propriété du tas min
+}
+
+void heapifyDown(Arbre *heap, int i)
+{
+	int plusPetit = i;
+	int gauche = 2 * i + 1;
+	int droite = 2 * i + 2;
+
+	if (gauche < heap->taille && heap->tableau[gauche]->frequence < heap->tableau[plusPetit]->frequence)
+		plusPetit = gauche;
+
+	if (droite < heap->taille && heap->tableau[droite]->frequence < heap->tableau[plusPetit]->frequence)
+		plusPetit = droite;
+
+	if (plusPetit != i)
+	{
+		// Échange et récursion
+		Noeud *temp = heap->tableau[i];
+		heap->tableau[i] = heap->tableau[plusPetit];
+		heap->tableau[plusPetit] = temp;
+
+		heapifyDown(heap, plusPetit);
+	}
+}
+
+void heapifyUp(Arbre *heap, int i)
+{
+	int parent = (i - 1) / 2;
+	if (i > 0 && heap->tableau[i]->frequence < heap->tableau[parent]->frequence)
+	{
+		Noeud *temp = heap->tableau[i];
+		heap->tableau[i] = heap->tableau[parent];
+		heap->tableau[parent] = temp;
+
+		heapifyUp(heap, parent);
+	}
+}
+
 Noeud *construireArbreHuffman(int frequence[])
 {
 	Arbre *heap = creerArbre(256);
@@ -95,14 +159,12 @@ Noeud *construireArbreHuffman(int frequence[])
 		Noeud *gauche = extraireMin(heap);
 		Noeud *droite = extraireMin(heap);
 
-		// Création du nœud interne fusionné
 		Noeud *nouveauNoeud = creerNoeud('\0', gauche->frequence + droite->frequence, gauche, droite);
 
-		// Insertion du nœud fusionné
 		insererArbre(heap, nouveauNoeud);
 	}
 
-	return extraireMin(heap); // La racine de l’arbre
+	return extraireMin(heap);
 }
 
 int main()
