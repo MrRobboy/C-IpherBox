@@ -1,7 +1,7 @@
 # C-IpherBox - Security Toolkit Project
 
 ### Vue d'Ensemble
-C-IpherBox est une suite d'outils de sécurité développée dans le cadre du projet de programmation C à l'ESGI. Ce projet combine trois fonctionnalités essentielles de sécurité informatique :
+C-IpherBox est une suite d'outils de sécurité développée dans le cadre d'un projet academique de C à l'ESGI. Ce projet combine trois fonctionnalités essentielles de sécurité informatique :
 
 - **Scanner de ports et d'adresses IP** avec capacités de détection de services
 - **Système de compression de fichiers optimisé**
@@ -19,9 +19,10 @@ Le déploiement de C-IpherBox nécessite l'environnement suivant :
 - **Utilitaire Make**
 
 **Bibliothèques requises :**
-- `pthread` (gestion du multi-threading)
-
+- pthread (gestion du multi-threading)
 - **Bibliothèques C standard**
+
+## 🚀 Guide d'Utilisation
 
 ### Processus d'Installation
 ```bash
@@ -44,25 +45,54 @@ make rebuild
 
 ---
 
-## 🚀 Guide d'Utilisation
 
 
+## Scanner de Ports et Réseau
+### 🛠 Défi & ✅ Solution
 
+### Manipulation des sockets TCP
+✅ Utilisation de `socket()`, `connect()` et `select()`
 
+### Scalabilité
+✅ Multithreading avec `pthread` (jusqu'à 100 threads)
 
-### Scanner de Ports et Réseau
-L'exécution se fait via la commande :
-```bash
-make run
-```
-Le module de scan offre les fonctionnalités suivantes :
+### Blocage sur connexions lentes
+✅ Timeout via `select()` pour éviter les blocages
 
+### Difficulté à identifier les erreurs
+✅ Gestion améliorée avec `perror()` et `errno`
 
-- Conversion d'adresses **CIDR** en liste d'IPs
-- Analyse des **ports ouverts** sur une adresse IP spécifique
-- Scanner réseau complet avec **détection de services**
+### Scans trop lents
+✅ Exécution parallèle des scans via threads
 
-### Compression de Fichiers
+### Scan IP unique inefficace
+✅ Boucle optimisée pour plusieurs ports simultanément
+
+### Énumération des services impossible
+✅ Détection avec `getservbyport()`
+
+---
+
+### 🔥 Optimisations apportées
+
+- **Gestion des réseaux CIDR** → Convertit une plage d’IP automatiquement.
+- **Timeout intelligent** → Évite les blocages sur les ports inactifs.
+- **Gestion des erreurs robuste** → Messages d’erreurs explicites.
+- **Multithreading** → Permet un scan 100x plus rapide.
+- **Scan flexible** → Mode IP unique ou réseau entier.
+- **Détection des services** → Identification des services actifs (HTTP, SSH, etc.).
+
+---
+
+## 📌 Fonctionnalités principales
+
+- 📍 **Scan d’une IP spécifique**
+- 🌐 **Scan d’un réseau entier avec notation CIDR**
+- ⚡ **Vitesse optimisée grâce aux threads**
+- 🔍 **Affichage des services associés aux ports ouverts**
+- 🛡 **Évite les blocages et les ralentissements**
+
+## Compression de Fichiers
 Le module de compression permet :
 
 - La **compression efficace** de fichiers individuels
@@ -72,9 +102,9 @@ Le module de compression permet :
 ### Brute Force
 L'outil de brute force supporte :
 
-- **Attaques par dictionnaire**
+- **Brute Force classique**
 - **Cracking de hash MD5 et SHA1**
-- Tests de mots de passe avec différentes stratégies
+- **Attaques par dictionnaire**
 
 ---
 
@@ -89,6 +119,63 @@ C-IpherBox/
 └── README.md
 ```
 
+📌 **Répartition du Code**
+- Le dossier `src/` contient les fichiers `.c`
+- Le dossier `include/` contient les fichiers `.h`
+- Le dossier `bin/` contient l'exécutable
+- Le dossier `build/` contient les fichiers `.o`
+- Le fichier `README.md` contient la documentation qui sera poussée sur GitHub
+
+### Structuration du Code
+Si vous avez uniquement un fichier `main.c`, voici comment bien le structurer :
+
+### Étapes de structuration :
+1. **Créer un fichier `.c` par fonctionnalité.**
+   - Les fichiers `.c` contiennent les fonctions, les variables et les prototypes des fonctions.
+2. **Créer un fichier `.h` pour chaque fichier `.c`.**
+   - Les fichiers `.h` doivent contenir les déclarations des fonctions et structures.
+
+### Fonctionnement du `Makefile` :
+```make
+CC = gcc (compiler)
+CFLAGS = -Wall -Wextra -pthread -Iinclude (options de compilation)
+LDFLAGS = -lpthread (options de lien)
+SRC_DIR = src
+BUILD_DIR = build
+BIN_DIR = bin
+
+SRC = $(wildcard $(SRC_DIR)/*.c)
+OBJ = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRC))
+TARGET = $(BIN_DIR)/C-IpherBox2.0
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	@echo "Compilation terminée : $(TARGET)"
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
+
+clean:
+	rm -rf $(BUILD_DIR)/*.o $(TARGET)
+	@echo " Nettoyage terminé"
+
+rebuild: clean all
+
+run: all
+	./$(TARGET)
+```
+
+### Commandes `make` :
+- `make` : Compile le projet
+- `make run` : Compile et exécute
+- `make clean` : Nettoie les fichiers compilés
+- `make rebuild` : Nettoie et recompile tout
 
 ---
 
@@ -110,79 +197,7 @@ Nous avons adopté une approche structurée :
 
 ---
 
-## 🛠️ Implémentation Technique
-
-### Éléments du Cours Appliqués
-Le projet intègre plusieurs concepts clés du cours de programmation C :
-
-#### Gestion de la Mémoire
-- Allocation dynamique via pointeurs
-- Libération systématique des ressources
-- Prévention des fuites mémoire
-
-#### Structures de Données
-- Implémentation de structures personnalisées
-- Optimisation des accès aux données
-- Organisation modulaire du code
-
-#### Programmation Système
-- Utilisation des **threads** pour la parallélisation
-- Gestion des **entrées/sorties fichier**
-- Manipulation des **sockets réseau**
-
----
-
-## 💡 Optimisations et Performances
-
-### Scanner de Ports
-- Implémentation **multi-thread** pour les scans parallèles
-- Détection intelligente des services
-
-### Compression
-
-
-### Brute Force
-
-
----
-
-## 🔄 Défis et Solutions
-
-### Défis Rencontrés
-
-- **Gestion de la charge de travail** avec d'autres projets académiques et évaluations
-- **Acquisition de nouvelles connaissances techniques** nécessaires à la mise en œuvre des fonctionnalités
-
-### Solutions Apportées
-
-- **Planification minutieuse dès le départ** : L'organisation précoce du projet a permis d'éviter des difficultés organisationnelles et relationnelles.
-- **Répartition efficace des tâches** : Chaque membre a pris en charge un module spécifique, réduisant ainsi la charge de travail individuelle.
-- **Auto-formation et apprentissage continu** : Les défis techniques ont été résolus en apprenant et en appliquant les notions requises à mesure de l'avancement du projet.
-
----
-
-## 📈 Impact sur la Formation
-
-### Apports Académiques
-Ce projet a permis d'approfondir :
-- Les **concepts avancés** de programmation C
-- Les **principes de sécurité informatique**
-- La **gestion de projet** en équipe
-
-### Développement Professionnel
-L'expérience acquise inclut :
-- **Gestion d'un projet technique complexe**
-- **Travail en équipe** dans un contexte technique
-- **Documentation et maintenance de code**
-
----
-
 ## 📄 Licence
 Ce projet est distribué sous **licence MIT**. Voir le fichier `LICENSE` pour plus de détails.
 
 ---
-
-## ✍️ Auteurs
-- **[Membre 1]** - Scanner de Ports et Réseau
-- **[Membre 2]** - Module de Brute Force
-- **[Membre 3]** - Système de Compression
