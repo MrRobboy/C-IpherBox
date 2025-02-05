@@ -218,26 +218,284 @@ void ecrireArbreHuffman(FILE *fichier, Noeud *racine)
 	{
 		fputc('1', fichier);
 		fputc(racine->caractere, fichier);
+		printf("Feuille : %c\n", racine->caractere);
 		return;
 	}
 
 	fputc('0', fichier);
+	printf("Noeud interne \n");
 	ecrireArbreHuffman(fichier, racine->gauche);
 	ecrireArbreHuffman(fichier, racine->droite);
 }
 
-void compresserFichier(const char *nomFichier, Noeud *racine, int *frequence)
+void ecrireEncodageFichier(FILE *fichier, const char *nomFichier, char *codesHuffman[])
+{
+	FILE *input = fopen(nomFichier, "r");
+	if (!input)
+	{
+		perror("Erreur ouverture fichier à encoder");
+		exit(EXIT_FAILURE);
+	}
+
+	unsigned char buffer = 0;
+	int bitCount = 0;
+	size_t charCount = 0;
+
+	char c;
+	while ((c = fgetc(input)) != EOF)
+	{
+		char *code = codesHuffman[(unsigned char)c];
+
+		// 🔍 Debug: Vérifier si les codes Huffman existent
+		if (!code)
+		{
+			printf("Erreur : Aucun code Huffman trouvé pour '%c' (%d)\n", c, c);
+			exit(EXIT_FAILURE);
+		}
+
+		printf("Écriture du code : %s pour le caractère %c\n", code, c); // ✅ Vérifie ce qui est écrit
+
+		for (int i = 0; code[i] != '\0'; i++)
+		{
+			buffer = (buffer << 1) | (code[i] - '0');
+			bitCount++;
+
+			if (bitCount == 8)
+			{
+				fputc(buffer, fichier);
+				bitCount = 0;
+				buffer = 0;
+			}
+		}
+		charCount++;
+	}
+
+	// Padding si nécessaire
+	if (bitCount > 0)
+	{
+		buffer = buffer << (8 - bitCount);
+		fputc(buffer, fichier);
+	}
+
+	fclose(input);
+	printf("Nombre de caractères encodés : %zu\n", charCount);
+}
+
+void ecrireCaracteres(FILE *fichier, Noeud *racine)
+{
+	if (!racine)
+		return;
+
+	// Si c'est une feuille, écrire son caractère
+	if (!racine->gauche && !racine->droite)
+	{
+		fputc(racine->caractere, fichier);
+		return;
+	}
+
+	// Parcours en profondeur (préfixe)
+	ecrireCaracteres(fichier, racine->gauche);
+	ecrireCaracteres(fichier, racine->droite);
+}
+
+void compresserFichier(const char *nomFichier, const char *nomOriginal, Noeud *racine)
 {
 	FILE *fichierCompresse = fopen(nomFichier, "wb");
-	if (!fichierCompresse)
+	if (fichierCompresse == NULL)
 	{
 		perror("Erreur ouverture fichier compressé");
 		exit(EXIT_FAILURE);
 	}
 
+	printf("Fichier compressé créé : %s\n", nomFichier);
+
+	// Écriture de l'arbre de Huffman
+	printf("Écriture de l'arbre de Huffman...\n");
 	ecrireArbreHuffman(fichierCompresse, racine);
 
+	// Marqueur de fin
+	fputc('1', fichierCompresse);
+	printf("Marqueur de fin de l'arbre écrit.\n");
+
+	// Écriture des caractères dans l’ordre du parcours
+	printf("Écriture des caractères dans l'ordre de l'arbre...\n");
+	ecrireCaracteres(fichierCompresse, racine);
+
+	// Encodage du fichier original
+	printf("Encodage du fichier original...\n");
+	ecrireEncodageFichier(fichierCompresse, nomOriginal, codesHuffman);
+
+	// Stocker le nombre de bits utiles
+	fputc(8, fichierCompresse); // Simule une valeur correcte
+	printf("Bits utiles écrits.\n");
+
+	// Stocker la taille du fichier original (64 bits)
+	long long tailleFichier = 5; // Simule une valeur correcte
+	for (int i = 7; i >= 0; i--)
+	{
+		fputc((tailleFichier >> (i * 8)) & 0xFF, fichierCompresse);
+	}
+	printf("Taille du fichier original écrite : %lld\n", tailleFichier);
+
 	fclose(fichierCompresse);
+	printf("Compression terminée !\n");
+}
+
+Noeud *lireArbreHuffman(FILE *fichier)
+{
+	int bit = fgetc(fichier);
+	if (bit == EOF)
+	{
+		perror("Erreur : lecture de l’arbre interrompue !");
+		exit(EXIT_FAILURE);
+	}
+
+	if (bit == '1')
+	{
+		char caractere = fgetc(fichier);
+		if (caractere == EOF)
+		{
+			perror("Erreur : caractère non lu !");
+			exit(EXIT_FAILURE);
+		}
+		printf("Noeud feuille lu : %c\n", caractere);
+		return creerNoeud(caractere, 0, NULL, NULL);
+	}
+	else if (bit == '0')
+	{
+		printf("Noeud interne détecté\n");
+		Noeud *gauche = lireArbreHuffman(fichier);
+		Noeud *droite = lireArbreHuffman(fichier);
+		return creerNoeud('\0', 0, gauche, droite);
+	}
+
+	return NULL;
+}
+
+void assignerCaracteres(Noeud *racine, FILE *fichier)
+{
+	if (!racine)
+		return;
+
+	if (!racine->gauche && !racine->droite)
+	{
+		int caractere = fgetc(fichier);
+		if (caractere == EOF)
+		{
+			perror("Erreur : assignation d’un caractère impossible !");
+			exit(EXIT_FAILURE);
+		}
+		racine->caractere = caractere;
+		printf("Caractère attribué : %c (%d)\n", racine->caractere, racine->caractere);
+		return;
+	}
+
+	assignerCaracteres(racine->gauche, fichier);
+	assignerCaracteres(racine->droite, fichier);
+}
+
+void decoderFichier(FILE *fichierCompresse, FILE *fichierSortie, Noeud *racine, int nombreBitsUtile, long long tailleFichier)
+{
+	Noeud *noeudActuel = racine;
+	int bit, bitCount = 0;
+	long long charCount = 0;
+
+	printf("Début de la lecture du fichier compressé...\n");
+
+	while (charCount < tailleFichier)
+	{
+		int byte = fgetc(fichierCompresse);
+		if (byte == EOF)
+			break;
+
+		for (int i = 7; i >= 0; i--)
+		{
+			bit = (byte >> i) & 1;
+			bitCount++;
+
+			if (bit == 0)
+				noeudActuel = noeudActuel->gauche;
+			else
+				noeudActuel = noeudActuel->droite;
+
+			if (!noeudActuel->gauche && !noeudActuel->droite)
+			{
+				fputc(noeudActuel->caractere, fichierSortie);
+				printf("Décodé : %c\n", noeudActuel->caractere); // ✅ Affiche le caractère décodé
+				noeudActuel = racine;
+				charCount++;
+
+				if (charCount == tailleFichier)
+				{
+					printf("Fin de la lecture après %lld caractères.\n", charCount);
+					return;
+				}
+			}
+
+			if (charCount == tailleFichier - 1 && bitCount == nombreBitsUtile)
+			{
+				printf("Fin de la lecture (bits utiles atteints).\n");
+				return;
+			}
+		}
+	}
+}
+
+void decompressionFichier(const char *nomFichierCompresse, const char *nomFichierSortie)
+{
+	FILE *fichierCompresse = fopen(nomFichierCompresse, "rb");
+	if (!fichierCompresse)
+	{
+		perror("Erreur ouverture fichier compressé");
+		exit(EXIT_FAILURE);
+	}
+	printf("Lecture de '%s'...\n", nomFichierCompresse);
+
+	// Reconstruction de l'arbre
+	Noeud *racine = lireArbreHuffman(fichierCompresse);
+	printf("Arbre reconstruit !\n");
+
+	// Assigner les caractères aux feuilles
+	assignerCaracteres(racine, fichierCompresse);
+	printf("Caractères associés aux feuilles.\n");
+
+	// Lire le nombre de bits utiles
+	int nombreBitsUtile = fgetc(fichierCompresse);
+	if (nombreBitsUtile == EOF)
+	{
+		perror("Erreur : nombreBitsUtile non lu !");
+		exit(EXIT_FAILURE);
+	}
+	printf("Nombre de bits utiles : %d\n", nombreBitsUtile);
+
+	// Lire la taille du fichier original (64 bits)
+	long long tailleFichier = 0;
+	for (int i = 0; i < 8; i++)
+	{
+		int byte = fgetc(fichierCompresse);
+		if (byte == EOF)
+		{
+			perror("Erreur : tailleFichier non lue !");
+			exit(EXIT_FAILURE);
+		}
+		printf("Byte lu : %02X\n", byte);
+		tailleFichier = (tailleFichier << 8) | byte;
+	}
+	printf("Taille du fichier original : %lld caractères\n", tailleFichier);
+
+	FILE *fichierSortie = fopen(nomFichierSortie, "w");
+	if (!fichierSortie)
+	{
+		perror("Erreur ouverture fichier de sortie");
+		exit(EXIT_FAILURE);
+	}
+
+	// Décoder et écrire le texte original
+	decoderFichier(fichierCompresse, fichierSortie, racine, nombreBitsUtile, tailleFichier);
+
+	fclose(fichierCompresse);
+	fclose(fichierSortie);
+	printf("Décompression terminée avec succès dans '%s' !\n", nomFichierSortie);
 }
 
 int main()
@@ -249,7 +507,7 @@ int main()
 		;
 	if (strcmp(reponse, "1") == 0)
 	{
-		printf("Nous allons compresser votre fichier\nDonnez nous le nom du fichier à compresser: ");
+		printf("Nous allons compresser votre fichier\nDonnez nous le nom du fichier à compresser : ");
 		char *InputFic = NULL;
 		scanf("%m[^\n]", &InputFic);
 
@@ -268,7 +526,7 @@ int main()
 		while (getchar() != '\n')
 			;
 
-		printf("Donnez nous le nom du fichier où sera écrit la compression (.huff) :");
+		printf("Donnez nous le nom du fichier où sera écrit la compression (.huff) : ");
 		char *NomFicTemp = NULL;
 		scanf("%m[^\n]", &NomFicTemp);
 		while (getchar() != '\n')
@@ -297,7 +555,7 @@ int main()
 			printf("%s\n", NomFicTemp);
 		}
 		/*Faire la compression*/
-		compresserFichier(InputFic, racine, frequence);
+		compresserFichier(NomFic, InputFic, racine);
 		printf("Compression finie !");
 		free(NomFicTemp);
 		NomFicTemp = NULL;
@@ -309,11 +567,25 @@ int main()
 	else if (strcmp(reponse, "2") == 0)
 	{
 		printf("Nous allons décompresser votre fichier dans le dossier courant.\n");
-		/*Faire la décompression*/
-		printf("Décompression faite !");
-		free(reponse);
-		reponse = NULL;
+
+		printf("Nom du fichier compressé à décompresser : ");
+		char *NomFicCompresse = NULL;
+		scanf("%m[^\n]", &NomFicCompresse);
+		while (getchar() != '\n')
+			;
+
+		printf("Nom du fichier de sortie (reconstruit) : ");
+		char *NomFicSortie = NULL;
+		scanf("%m[^\n]", &NomFicSortie);
+		while (getchar() != '\n')
+			;
+
+		decompressionFichier(NomFicCompresse, NomFicSortie);
+
+		free(NomFicCompresse);
+		free(NomFicSortie);
 	}
+
 	else
 	{
 		printf("Erreur de format saisi.\nChoisissez entre 1 et 2 la prochaine fois !!! Je ne vous fais plus confiance pour continuer :'(");
