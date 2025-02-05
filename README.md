@@ -99,7 +99,7 @@ Le module de compression permet :
 - L'optimisation du stockage avec **plusieurs niveaux de compression**
 - La **décompression** avec vérification d'intégrité
 
-### Brute Force
+## Brute Force
 L'outil de brute force supporte :
 
 - **Brute Force classique**
