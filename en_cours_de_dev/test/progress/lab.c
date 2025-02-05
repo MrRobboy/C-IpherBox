@@ -173,26 +173,22 @@ Noeud *construireArbreHuffman(int frequence[])
 
 char *codesHuffman[Max_Val_ASCII];
 
-// Fonction récursive pour générer les codes Huffman
 void genererCodes(Noeud *racine, char *code, int profondeur)
 {
 	if (!racine)
 		return;
 
-	// Si on est sur une feuille (caractère réel)
 	if (!racine->gauche && !racine->droite)
 	{
-		code[profondeur] = '\0'; // Fin de chaîne
+		code[profondeur] = '\0';
 		codesHuffman[(unsigned char)racine->caractere] = strdup(code);
 		printf("Caractère '%c' -> Code Huffman : %s\n", racine->caractere, code);
 		return;
 	}
 
-	// Ajoute '0' en allant à gauche
 	code[profondeur] = '0';
 	genererCodes(racine->gauche, code, profondeur + 1);
 
-	// Ajoute '1' en allant à droite
 	code[profondeur] = '1';
 	genererCodes(racine->droite, code, profondeur + 1);
 }
