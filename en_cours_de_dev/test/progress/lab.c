@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #define Max_Val_ASCII 256
 
@@ -218,12 +219,13 @@ void ecrireArbreHuffman(FILE *fichier, Noeud *racine)
 	{
 		fputc('1', fichier);
 		fputc(racine->caractere, fichier);
-		printf("Feuille : %c\n", racine->caractere);
+		printf("Écriture : Feuille -> 1 %c (%d)\n", racine->caractere, racine->caractere);
 		return;
 	}
 
 	fputc('0', fichier);
-	printf("Noeud interne \n");
+	printf("Écriture : Noeud interne -> 0\n");
+
 	ecrireArbreHuffman(fichier, racine->gauche);
 	ecrireArbreHuffman(fichier, racine->droite);
 }
@@ -286,16 +288,34 @@ void ecrireCaracteres(FILE *fichier, Noeud *racine)
 	if (!racine)
 		return;
 
-	// Si c'est une feuille, écrire son caractère
 	if (!racine->gauche && !racine->droite)
 	{
 		fputc(racine->caractere, fichier);
+		printf("Écriture caractère : %c (%d)\n", racine->caractere, racine->caractere);
 		return;
 	}
 
-	// Parcours en profondeur (préfixe)
 	ecrireCaracteres(fichier, racine->gauche);
 	ecrireCaracteres(fichier, racine->droite);
+}
+
+int calculerNombreBitsUtile(long long tailleOriginale)
+{
+	int bitsUtile = (tailleOriginale * 8) % 8;
+	if (bitsUtile == 0)
+		return 8;
+	return bitsUtile;
+}
+
+long long calculeTailleFichier(const char *nomFichier)
+{
+	struct stat st;
+	if (stat(nomFichier, &st) != 0)
+	{
+		perror("Erreur lors du calcul de la taille du fichier");
+		exit(EXIT_FAILURE);
+	}
+	return (long long)st.st_size;
 }
 
 void compresserFichier(const char *nomFichier, const char *nomOriginal, Noeud *racine)
@@ -313,8 +333,8 @@ void compresserFichier(const char *nomFichier, const char *nomOriginal, Noeud *r
 	printf("Écriture de l'arbre de Huffman...\n");
 	ecrireArbreHuffman(fichierCompresse, racine);
 
-	// Marqueur de fin
-	fputc('1', fichierCompresse);
+	// Marqueur de fin correct
+	fputc(0x01, fichierCompresse);
 	printf("Marqueur de fin de l'arbre écrit.\n");
 
 	// Écriture des caractères dans l’ordre du parcours
@@ -325,17 +345,36 @@ void compresserFichier(const char *nomFichier, const char *nomOriginal, Noeud *r
 	printf("Encodage du fichier original...\n");
 	ecrireEncodageFichier(fichierCompresse, nomOriginal, codesHuffman);
 
-	// Stocker le nombre de bits utiles
-	fputc(8, fichierCompresse); // Simule une valeur correcte
-	printf("Bits utiles écrits.\n");
+	// Calcul de la taille du fichier original
+	long long tailleFichier = calculeTailleFichier(nomOriginal);
+	printf("Taille du fichier original à écrire : %lld octets\n", tailleFichier);
 
-	// Stocker la taille du fichier original (64 bits)
-	long long tailleFichier = 5; // Simule une valeur correcte
+	// Calcul du nombre de bits utiles
+	int nombreBitsUtile = calculerNombreBitsUtile(tailleFichier);
+	fputc(nombreBitsUtile, fichierCompresse);
+	printf("Bits utiles écrits : %d\n", nombreBitsUtile);
+
+	// Écriture de la taille du fichier original (64 bits)
 	for (int i = 7; i >= 0; i--)
 	{
 		fputc((tailleFichier >> (i * 8)) & 0xFF, fichierCompresse);
+		printf("Byte écrit pour taille : %02llX\n", (tailleFichier >> (i * 8)) & 0xFF);
 	}
-	printf("Taille du fichier original écrite : %lld\n", tailleFichier);
+
+	// Vérification de la structure du fichier compressé
+	fseek(fichierCompresse, 0, SEEK_SET);
+	printf("\n--- Structure du fichier compressé ---\n");
+	int byte;
+	while ((byte = fgetc(fichierCompresse)) != EOF)
+	{
+		printf("%02X ", byte);
+	}
+	printf("\n-------------------------------------\n");
+
+	// Vérifier la taille réelle du fichier compressé
+	fseek(fichierCompresse, 0, SEEK_END);
+	long tailleFichierCompresse = ftell(fichierCompresse);
+	printf("Taille réelle du fichier compressé : %ld octets\n", tailleFichierCompresse);
 
 	fclose(fichierCompresse);
 	printf("Compression terminée !\n");
@@ -408,9 +447,13 @@ void decoderFichier(FILE *fichierCompresse, FILE *fichierSortie, Noeud *racine, 
 		if (byte == EOF)
 			break;
 
+		printf("Byte lu : %02X\n", byte);
+
 		for (int i = 7; i >= 0; i--)
 		{
 			bit = (byte >> i) & 1;
+			printf("Bit lu : %d\n", bit); // ✅ Vérification
+
 			bitCount++;
 
 			if (bit == 0)
@@ -421,7 +464,7 @@ void decoderFichier(FILE *fichierCompresse, FILE *fichierSortie, Noeud *racine, 
 			if (!noeudActuel->gauche && !noeudActuel->droite)
 			{
 				fputc(noeudActuel->caractere, fichierSortie);
-				printf("Décodé : %c\n", noeudActuel->caractere); // ✅ Affiche le caractère décodé
+				printf("Décodé : %c\n", noeudActuel->caractere);
 				noeudActuel = racine;
 				charCount++;
 
@@ -459,16 +502,21 @@ void decompressionFichier(const char *nomFichierCompresse, const char *nomFichie
 	assignerCaracteres(racine, fichierCompresse);
 	printf("Caractères associés aux feuilles.\n");
 
+	// Vérifier la position actuelle avant lecture
+	printf("Position actuelle avant lecture nombreBitsUtile : %ld\n", ftell(fichierCompresse));
+
 	// Lire le nombre de bits utiles
 	int nombreBitsUtile = fgetc(fichierCompresse);
-	if (nombreBitsUtile == EOF)
+	if (nombreBitsUtile == EOF || nombreBitsUtile > 8)
 	{
-		perror("Erreur : nombreBitsUtile non lu !");
+		perror("Erreur : nombreBitsUtile non lu ou incorrect !");
 		exit(EXIT_FAILURE);
 	}
-	printf("Nombre de bits utiles : %d\n", nombreBitsUtile);
+	printf("Nombre de bits utiles lu : %d\n", nombreBitsUtile);
 
-	// Lire la taille du fichier original (64 bits)
+	// Vérifier la position avant de lire `tailleFichier`
+	printf("Position actuelle avant lecture tailleFichier : %ld\n", ftell(fichierCompresse));
+
 	long long tailleFichier = 0;
 	for (int i = 0; i < 8; i++)
 	{
@@ -478,7 +526,7 @@ void decompressionFichier(const char *nomFichierCompresse, const char *nomFichie
 			perror("Erreur : tailleFichier non lue !");
 			exit(EXIT_FAILURE);
 		}
-		printf("Byte lu : %02X\n", byte);
+		printf("Byte lu pour taille : %02X\n", byte);
 		tailleFichier = (tailleFichier << 8) | byte;
 	}
 	printf("Taille du fichier original : %lld caractères\n", tailleFichier);
