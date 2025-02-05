@@ -93,11 +93,18 @@ make rebuild
 - 🛡 **Évite les blocages et les ralentissements**
 
 ## Compression de Fichiers
-Le module de compression permet :
-
-- La **compression efficace** de fichiers individuels
-- L'optimisation du stockage avec **plusieurs niveaux de compression**
-- La **décompression** avec vérification d'intégrité
+### Difficultés
+- ✅Lire les fréquences des caractères d'un fichier
+- ✅Définir un arbre de Huffman à partir de ces fréquences
+- ✅Transformer cet arbre en binaire avec un marqueur de fin
+- ✅Donner les caractères associés à chaque feuilles
+- ✅Encoder dans le fichier final les caractères du fichier de base
+- ✅Mettre un "padding" pour bien remplir les 8 bits et écrire le nombre bits utiles pour le padding
+- ✅Lire l'arbre en binaire et le reconstruire
+- ✅Relier les caractères aux feuilles dans l'arbre
+- ✅Décoder les caractères encodés à partir de l'arbre
+- ✅Vérifier le nombre de caractères
+- ❌Ne pas devenir fou sur le chemin
 
 ## Brute Force
 L'outil de brute force supporte :
