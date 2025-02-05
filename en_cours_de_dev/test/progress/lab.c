@@ -230,6 +230,8 @@ void ecrireArbreHuffman(FILE *fichier, Noeud *racine)
 	ecrireArbreHuffman(fichier, racine->droite);
 }
 
+#define BUFFER_SIZE 1024
+
 void ecrireEncodageFichier(FILE *fichier, const char *nomFichier, char *codesHuffman[])
 {
 	FILE *input = fopen(nomFichier, "r");
@@ -239,48 +241,24 @@ void ecrireEncodageFichier(FILE *fichier, const char *nomFichier, char *codesHuf
 		exit(EXIT_FAILURE);
 	}
 
-	unsigned char buffer = 0;
-	int bitCount = 0;
-	size_t charCount = 0;
+	unsigned char buffer[BUFFER_SIZE];
+	size_t bytesRead;
 
-	char c;
-	while ((c = fgetc(input)) != EOF)
+	while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, input)) > 0)
 	{
-		char *code = codesHuffman[(unsigned char)c];
-
-		// 🔍 Debug: Vérifier si les codes Huffman existent
-		if (!code)
+		for (size_t i = 0; i < bytesRead; i++)
 		{
-			printf("Erreur : Aucun code Huffman trouvé pour '%c' (%d)\n", c, c);
-			exit(EXIT_FAILURE);
-		}
-
-		printf("Écriture du code : %s pour le caractère %c\n", code, c); // ✅ Vérifie ce qui est écrit
-
-		for (int i = 0; code[i] != '\0'; i++)
-		{
-			buffer = (buffer << 1) | (code[i] - '0');
-			bitCount++;
-
-			if (bitCount == 8)
+			char *code = codesHuffman[(unsigned char)buffer[i]];
+			if (!code)
 			{
-				fputc(buffer, fichier);
-				bitCount = 0;
-				buffer = 0;
+				printf("Erreur : Aucun code Huffman trouvé pour '%c' (%d)\n", buffer[i], buffer[i]);
+				exit(EXIT_FAILURE);
 			}
+			fputs(code, fichier);
 		}
-		charCount++;
-	}
-
-	// Padding si nécessaire
-	if (bitCount > 0)
-	{
-		buffer = buffer << (8 - bitCount);
-		fputc(buffer, fichier);
 	}
 
 	fclose(input);
-	printf("Nombre de caractères encodés : %zu\n", charCount);
 }
 
 void ecrireCaracteres(FILE *fichier, Noeud *racine)
@@ -333,8 +311,8 @@ void compresserFichier(const char *nomFichier, const char *nomOriginal, Noeud *r
 	printf("Écriture de l'arbre de Huffman...\n");
 	ecrireArbreHuffman(fichierCompresse, racine);
 
-	// Marqueur de fin correct
-	fputc(0x01, fichierCompresse);
+	// Marqueur de fin correct (assurez-vous que `lireArbreHuffman()` attend bien '1')
+	fputc('1', fichierCompresse);
 	printf("Marqueur de fin de l'arbre écrit.\n");
 
 	// Écriture des caractères dans l’ordre du parcours
@@ -354,12 +332,8 @@ void compresserFichier(const char *nomFichier, const char *nomOriginal, Noeud *r
 	fputc(nombreBitsUtile, fichierCompresse);
 	printf("Bits utiles écrits : %d\n", nombreBitsUtile);
 
-	// Écriture de la taille du fichier original (64 bits)
-	for (int i = 7; i >= 0; i--)
-	{
-		fputc((tailleFichier >> (i * 8)) & 0xFF, fichierCompresse);
-		printf("Byte écrit pour taille : %02llX\n", (tailleFichier >> (i * 8)) & 0xFF);
-	}
+	// Écriture de la taille du fichier original en 64 bits
+	fwrite(&tailleFichier, sizeof(long long), 1, fichierCompresse);
 
 	// Vérification de la structure du fichier compressé
 	fseek(fichierCompresse, 0, SEEK_SET);
@@ -507,11 +481,12 @@ void decompressionFichier(const char *nomFichierCompresse, const char *nomFichie
 
 	// Lire le nombre de bits utiles
 	int nombreBitsUtile = fgetc(fichierCompresse);
-	if (nombreBitsUtile == EOF || nombreBitsUtile > 8)
+	if (nombreBitsUtile == EOF || nombreBitsUtile < 1 || nombreBitsUtile > 8)
 	{
-		perror("Erreur : nombreBitsUtile non lu ou incorrect !");
+		fprintf(stderr, "Erreur : nombreBitsUtile incorrect ou fichier corrompu !\n");
 		exit(EXIT_FAILURE);
 	}
+
 	printf("Nombre de bits utiles lu : %d\n", nombreBitsUtile);
 
 	// Vérifier la position avant de lire `tailleFichier`
@@ -582,7 +557,7 @@ int main()
 		char *NomFic = NULL;
 		if (strstr(NomFicTemp, ".huff") == NULL)
 		{
-			NomFic = malloc(strlen(NomFicTemp));
+			NomFic = malloc(strlen(NomFicTemp) + 1);
 			if (NomFic == NULL)
 			{
 				perror("Erreur d'allocation de mémoire");
