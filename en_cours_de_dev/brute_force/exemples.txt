@@ -1,0 +1,20 @@
+Tester fin de wordlist:
+4242:  Kevin Trancho aime le C        
+
+Tester milieu de wordlist:
+kevin
+
+Tester début de wordlist:
+password
+
+Test bruteforce classique:
+aaa
+bbb
+yza
+
+
+Test MD5:
+password = 5f4dcc3b5aa765d61d8327deb882cf99
+
+Test SHA-1:
+kCBVS8o5 = 12c9b332ab9639e84496b18032029774
