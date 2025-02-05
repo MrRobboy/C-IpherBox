@@ -20,7 +20,7 @@ Le déploiement de C-IpherBox nécessite l'environnement suivant :
 
 **Bibliothèques requises :**
 - `pthread` (gestion du multi-threading)
-
+  
 - **Bibliothèques C standard**
 
 ### Processus d'Installation
@@ -142,7 +142,10 @@ Le projet intègre plusieurs concepts clés du cours de programmation C :
 
 
 ### Brute Force
-
+- Utilisation de tableaux dynamiques pour stocker et manipuler les données de manière efficace.
+- Minimisation des accès aux fichiers pour améliorer la vitesse d'exécution.
+- Optimisation du parcours des charsets en limitant le nombre de boucles inutiles.
+- Algorithme de hachage simplifié pour éviter les dépendances externes (pas d’OpenSSL).
 
 ---
 
