@@ -1,0 +1,204 @@
+On dit 0 pour une jambe gauche
+On dit 1 pour une jambe droite
+
+Dans le doute, quand j'écrits jambe/branche/pied, ça revient à la même chose.
+
+On créé un arbre en additionnant les deux plus petites valeurs actuels pour en faire un nœud (avec deux branches en dessous, respectivement les deux valeurs), puis on additionne les autres.
+Pour déterminer l'ordre dans lesquels on prends les lettres, dans une liste on tri les valeurs selon leur fréquence (ordre décroissant) et selon leur caractère (croissant dans l'ordre ASCII).
+On va de préférence commencer la création du tableau de la droite vers la gauche. Donc les nouveaux éléments seront toujours à gauche (Exemple un nœud + un caractère, le caractère sera la jambe gauche du nœud mêlant les deux).
+Cela nous donnera le résultat suivant ==> Pas de jambe droite sans jambe gauche. Et les derniers caractères sélectionnés seront ceux avec le plus de fréquence, de sorte à ce qu'à la fin les plus fréquent aient les plus faible encodages.
+
+Exemple :
+Prenons ces fréquences (toujours rangés dans l'ordre croissant des chars ASCII): 
+a : 55
+b : 7
+c : 4
+d : 4
+
+On les représentes ainsi pour schématiser :
+(a:55) (b:7) (c:4) (d:4)
+
+On créé un nœud en additionnant les plus petites valeurs (ici c:4 et d:4)
+Le nœud aura comme valeur la somme des deux fréquences de ses deux jambes
+(a:55) (b:7)   (:8)
+			/	\
+		    (c:4)(d:4)
+On additionne à nouveaux les deux plus petites valeurs (ici b:7 et :8)
+(a:55)  (:15)
+              /       \
+          (b:7) (:8)
+                     /    \
+                (c:4) (d:4)
+On continue :
+        (:70)
+        /       \
+(a:55)  (:15)
+              /       \
+          (b:7) (:8)
+                     /    \
+                (c:4) (d:4)
+
+On a l'arbre final.
+On respecte la règle du 0 = gauche, 1 = droite.
+        (:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+           (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+
+Donc maintenant la table d'encodage est le suivant (juste le chemin à parcourir)
+a : 0
+b : 10
+c : 110
+d : 111
+
+Donc "abcdbcd" = 01011011110110111
+
+On va maintenant "lire" l'arbre et définir les valeurs binaires.
+On va d'abord vers les 0. Il ne peut y avoir de 1 sans 0 juste avant.
+On commence à la racine :
+    ->(:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+	   (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+
+On voit une branche gauche, on va écrire 0 dans le fichier
+Fichier = 0
+Pour s'assurer que l'on a plus rien en dessous de cette branche, on va regarder dedans.
+On descend à la branche en dessous (nœud référent = jambe gauche)
+            (:70)
+         0/        \1
+->(a:55)  (:15)
+                0/       \1
+	       (b:7) (:8)
+                       0/    \1
+                    (c:4) (d:4)
+
+On regarde s'il a une branche gauche, on voit qu'il n'en as pas. On peut donc remonter.
+    ->(:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+	   (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+Comme la jambe gauche a déjà été vérifiée, on va vérifier s'il y a une branche droite.
+On voit une brache droite. On écrit dans le fichier 1
+Fichier = 01
+On prend cette branche droite et on vérifie s'il y a quelque chose dedans avant d'en finir avec la branche en cours.
+
+On va dans la branche droite :
+        (:70)
+     0/        \1
+(a:55)  (:15) <-
+            0/       \1
+	   (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+
+On regarde s'il a une jambe gauche en priorité. On voit qu'il a une jambe gauche. On écrit donc 0 dans le fichier.
+Fichier = 010
+
+On va dans cette jambe gauche pour voir s'il y a des branches dedans.
+        (:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+       ->(b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+
+On regarde s'il a une jambe gauche (il ne peut pas avoir de jambes droite sans jambes gauche pour rappel)
+On voit qu'il n'en a pas. Donc on remonte au nœud parent.
+
+        (:70)
+     0/        \1
+(a:55)  (:15) <-
+            0/       \1
+           (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+
+Comme on a vérifier la jambe gauche, on peut maintenant vérifier la jambe droite.
+On voit qu'il y a une jambe droite. On écrit 1 dans le fichier !
+Fichier = 0101
+
+Avant de passer à la suite sur ce nœud on va regarder s'il n'y a pas des branches dans la jambe droite. On va donc dans la jambe droite.
+        (:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+           (b:7) (:8) <-
+                   0/    \1
+                (c:4) (d:4)
+
+On vérifie s'il y a une jambe gauche. On voit qu'il y en as 1. On écrit un 0 dans le fichier (0 = gauche pour rappel).
+Fichier = 01010
+Avant de passer à la suite sur ce nœud on va regarder s'il n'y a pas des branches dans la jambe gauche. On va donc dans la jambe gauche.
+        (:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+           (b:7) (:8)
+                   0/    \1
+            ->(c:4) (d:4)
+
+On vérifie s'il y a une jambe gauche. Il n'y en as pas. Pas de jambes gauches = pas de jambes droites non plus. Donc on remonte au nœud parent.
+        (:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+           (b:7) (:8) <-
+                   0/    \1
+                (c:4) (d:4)
+
+On a déjà vérifier la jambe gauche, on doit vérifier s'il y a une jambe droite.
+On voit une jambe droite. On écrit donc 1 dans le fichier.
+Fichier = 010101
+
+Avant de passer à la suite sur ce nœud on va regarder s'il n'y a pas des branches dans la jambe droite. On va donc dans la jambe droite.
+        (:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+           (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4) <-
+
+On regarde s'il y a une jambe gauche. On n'en trouve pas. Pas de jambe gauche = pas de jambes droite. Donc on peut remonter au nœud parent.
+        (:70)
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+           (b:7) (:8) <-
+                   0/    \1
+                (c:4) (d:4)
+
+Comme on a vérifier les deux branches on peut donc remonter au nœud parent.
+        (:70)
+     0/        \1
+(a:55)  (:15) <-
+            0/       \1
+           (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+
+Comme on a vérifier les deux branches on peut donc remonter au nœud parent.
+        (:70) <-
+     0/        \1
+(a:55)  (:15)
+            0/       \1
+           (b:7) (:8)
+                   0/    \1
+                (c:4) (d:4)
+
+Comme on a vérifier les deux branches on peut donc remonter au nœud parent, MAIS comme on est à la racine, il n'y a pas de nœud parent. Donc c'est la fin de l'arbre. On peut donc ajouter un 1 dans le fichier comme marqueur de fin.
+Fichier = 0101011
+
+Comprends tu la logique ?
+Si oui, refais moi le même processus avec la phrase : "Je suis un homme"

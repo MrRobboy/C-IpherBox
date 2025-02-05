@@ -85,13 +85,23 @@ void heapifyUp(Arbre *heap, int i);
 Noeud *extraireMin(Arbre *heap)
 {
 	if (heap->taille == 0)
-	{
 		return NULL;
+
+	int minIndex = 0;
+
+	for (int i = 1; i < heap->taille; i++)
+	{
+		if (heap->tableau[i]->frequence < heap->tableau[minIndex]->frequence)
+			minIndex = i;
+		else if (heap->tableau[i]->frequence == heap->tableau[minIndex]->frequence &&
+		         heap->tableau[i]->caractere < heap->tableau[minIndex]->caractere)
+			minIndex = i;
 	}
 
-	Noeud *minNode = heap->tableau[0];
-	heap->tableau[0] = heap->tableau[--heap->taille];
-	heapifyDown(heap, 0);
+	Noeud *minNode = heap->tableau[minIndex];
+
+	heap->tableau[minIndex] = heap->tableau[--heap->taille];
+	heapifyDown(heap, minIndex);
 
 	return minNode;
 }
@@ -160,11 +170,17 @@ Noeud *construireArbreHuffman(int frequence[])
 
 	while (heap->taille > 1)
 	{
-		Noeud *gauche = extraireMin(heap);
-		Noeud *droite = extraireMin(heap);
+		Noeud *noeud1 = extraireMin(heap);
+		Noeud *noeud2 = extraireMin(heap);
 
-		Noeud *nouveauNoeud = creerNoeud('\0', gauche->frequence + droite->frequence, gauche, droite);
+		if (noeud1->frequence < noeud2->frequence)
+		{
+			Noeud *temp = noeud1;
+			noeud1 = noeud2;
+			noeud2 = temp;
+		}
 
+		Noeud *nouveauNoeud = creerNoeud('\0', noeud1->frequence + noeud2->frequence, noeud1, noeud2);
 		insererArbre(heap, nouveauNoeud);
 	}
 
@@ -193,20 +209,116 @@ void genererCodes(Noeud *racine, char *code, int profondeur)
 	genererCodes(racine->droite, code, profondeur + 1);
 }
 
+void ecrireArbreHuffman(FILE *fichier, Noeud *racine)
+{
+	if (!racine)
+		return;
+
+	if (!racine->gauche && !racine->droite)
+	{
+		fputc('1', fichier);
+		fputc(racine->caractere, fichier);
+		return;
+	}
+
+	fputc('0', fichier);
+	ecrireArbreHuffman(fichier, racine->gauche);
+	ecrireArbreHuffman(fichier, racine->droite);
+}
+
+void compresserFichier(const char *nomFichier, Noeud *racine, int *frequence)
+{
+	FILE *fichierCompresse = fopen(nomFichier, "wb");
+	if (!fichierCompresse)
+	{
+		perror("Erreur ouverture fichier compressé");
+		exit(EXIT_FAILURE);
+	}
+
+	ecrireArbreHuffman(fichierCompresse, racine);
+
+	fclose(fichierCompresse);
+}
+
 int main()
 {
-	int frequence[Max_Val_ASCII];
+	char *reponse = NULL;
+	printf("1 - Compresser un fichier\n2 - Décompresser un fichier\nFaites votre choix : ");
+	scanf("%m[^\n]", &reponse);
+	while (getchar() != '\n')
+		;
+	if (strcmp(reponse, "1") == 0)
+	{
+		printf("Nous allons compresser votre fichier\nDonnez nous le nom du fichier à compresser: ");
+		char *InputFic = NULL;
+		scanf("%m[^\n]", &InputFic);
 
-	FillTabHzChar("test.txt", frequence);
+		int frequence[Max_Val_ASCII];
 
-	printf("\nFréquence des caractères :\n");
-	ShowHz(frequence);
+		FillTabHzChar(InputFic, frequence);
 
-	Noeud *racine = construireArbreHuffman(frequence);
+		printf("\nFréquence des caractères :\n");
+		ShowHz(frequence);
 
-	char code[Max_Val_ASCII]; // Stock temporaire du code
-	printf("\nCodes Huffman générés :\n");
-	genererCodes(racine, code, 0);
+		Noeud *racine = construireArbreHuffman(frequence);
 
-	return 0;
+		char code[Max_Val_ASCII]; // Stock temporaire du code
+		printf("\nCodes Huffman générés :\n");
+		genererCodes(racine, code, 0);
+		while (getchar() != '\n')
+			;
+
+		printf("Donnez nous le nom du fichier où sera écrit la compression (.huff) :");
+		char *NomFicTemp = NULL;
+		scanf("%m[^\n]", &NomFicTemp);
+		while (getchar() != '\n')
+			;
+		char *NomFic = NULL;
+		if (strstr(NomFicTemp, ".huff") == NULL)
+		{
+			NomFic = malloc(strlen(NomFicTemp));
+			if (NomFic == NULL)
+			{
+				perror("Erreur d'allocation de mémoire");
+				exit(EXIT_FAILURE);
+			}
+			sprintf(NomFic, "%s.huff", NomFicTemp);
+			printf("%s\n", NomFicTemp);
+		}
+		else
+		{
+			NomFic = malloc(strlen(NomFicTemp));
+			if (NomFic == NULL)
+			{
+				perror("Erreur d'allocation de mémoire");
+				exit(EXIT_FAILURE);
+			}
+			sprintf(NomFic, "%s", NomFicTemp);
+			printf("%s\n", NomFicTemp);
+		}
+		/*Faire la compression*/
+		compresserFichier(InputFic, racine, frequence);
+		printf("Compression finie !");
+		free(NomFicTemp);
+		NomFicTemp = NULL;
+		free(NomFic);
+		NomFic = NULL;
+		free(reponse);
+		reponse = NULL;
+	}
+	else if (strcmp(reponse, "2") == 0)
+	{
+		printf("Nous allons décompresser votre fichier dans le dossier courant.\n");
+		/*Faire la décompression*/
+		printf("Décompression faite !");
+		free(reponse);
+		reponse = NULL;
+	}
+	else
+	{
+		printf("Erreur de format saisi.\nChoisissez entre 1 et 2 la prochaine fois !!! Je ne vous fais plus confiance pour continuer :'(");
+		free(reponse);
+		reponse = NULL;
+		exit(EXIT_FAILURE);
+	}
 }
