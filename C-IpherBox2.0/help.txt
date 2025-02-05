@@ -1,0 +1,107 @@
+
+📌 Répartition du Code
+ le dossier src contient les fichiers .c
+ le dossier include contient les fichiers .h
+ le dossier bin contient l'executable
+ le dossier build contient les fichiers .o
+ et le dossier README.md contient la documentation qui sera push sur github
+
+si vous avew fais comme moi et que vous avez uniquement un fichier main.c, 
+voici comment bien le structurer pour l'adapter à la structure du projet :
+
+
+Séparez les fonctionnalités principales : gestion du menu, scan de ports, analyse réseau, conversion CIDR, etc.
+Créer un fichier .c par fonctionnalité dans src/
+
+menu.c → Gère l'affichage du menu et les entrées utilisateur.
+port_scan.c → Contient la logique de scan des ports.
+
+network_scanner.c → Implémente l’analyse réseau.
+cidr_to_ips.c → Convertit un CIDR en adresses IP.
+
+
+STEP BY STEP :
+
+1. Créer un fichier .c pour chaque fonctionnalité.
+1.1 les fichiers .c contiennent les fonctions et les variables et les prototypes des fonctions.
+
+2. Créer un fichier .h pour chaque fichier .c.
+2.1 les fichiers .h doivent contenir les déclarations des fonctions et structures.
+
+3. Mettre à jour main.c pour inclure les nouveaux fichiers .c.
+exemple :
+#include "menu.h"
+#include "port_scan.h"
+#include "network_scanner.h"
+#include "cidr_to_ips.h"
+
+3.1 le fichier menu.c doit etre edité pour inclure les nouvelles fonctionnalités.
+(attention a ne pas modifier le fichier menu.c sans avoir pris connaissance des modifications apportées au fichier menu.h, 
+risque de ne pas compiler, en gros il faut que le fichier menu.h soit le plus propre possible pour pas tout casser)
+
+4. Mettre à jour Makefile pour inclure les nouveaux fichiers .c.
+exemple :
+SRC = main.c menu.c port_scan.c network_scanner.c cidr_to_ips.c etc...
+OBJ = $(SRC:.c=.o)
+TARGET = C-IpherBox2.0
+
+si vous avez des bibliothèques externes, vous pouvez les ajouter dans le Makefile.
+exemple :
+LDFLAGS = -lpthread
+
+
+---------------------------------------------------------------------------------------------------------------------
+voici comment fonctionne notre makefile :
+
+CC = gcc (compiler)
+CFLAGS = -Wall -Wextra -pthread -Iinclude (options de compilation)
+LDFLAGS = -lpthread (options de lien)
+SRC_DIR = src (dossier source)
+BUILD_DIR = build (dossier objet)
+BIN_DIR = bin (dossier executable)
+
+SRC = $(wildcard $(SRC_DIR)/*.c) (liste des fichiers source)
+OBJ = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRC)) (liste des fichiers objets)
+TARGET = $(BIN_DIR)/C-IpherBox2.0 (nom de l'executable)
+
+
+all: $(TARGET) (règle principale)
+
+$(TARGET): $(OBJ) (règle de compilation)
+
+	@mkdir -p $(BIN_DIR) (création du dossier executable)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) (compilation)
+	@echo "✅ Compilation terminée : $(TARGET)" (message de fin de compilation)
+
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR) (règle de compilation des fichiers objets)
+	$(CC) $(CFLAGS) -c $< -o $@ (compilation)
+
+
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR) (création du dossier objet)
+
+clean:
+	rm -rf $(BUILD_DIR)/*.o $(TARGET) (nettoyage)
+	@echo "🗑️  Nettoyage terminé" (message de fin de nettoyage)
+
+
+rebuild: clean all (recompilation complète)
+
+run: all (exécution du programme compilé)
+	./$(TARGET) (exécution de l'executable)
+    
+---------------------------------------------------------------------------------------------------------------------
+
+
+
+pour le make voici les commandes :
+make (compile)
+make run (compile et exécute).
+make clean (nettoie).
+make rebuild (nettoie et recompile tout)
+
+
+
+
+
