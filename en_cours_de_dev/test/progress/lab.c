@@ -30,6 +30,7 @@ int *FillTabHzChar(char *filename, int *frequence)
 		frequence[(unsigned char)c]++;
 
 	fclose(fichier);
+	return frequence;
 }
 
 void ShowHz(int *frequence)
@@ -78,6 +79,9 @@ Arbre *creerArbre(int capacite)
 	return heap;
 }
 
+void heapifyDown(Arbre *heap, int i);
+void heapifyUp(Arbre *heap, int i);
+
 Noeud *extraireMin(Arbre *heap)
 {
 	if (heap->taille == 0)
@@ -100,10 +104,10 @@ void insererArbre(Arbre *heap, Noeud *nouveauNoeud)
 		return;
 	}
 
-	int i = heap->taille++; // Ajouter à la fin
+	int i = heap->taille++;
 	heap->tableau[i] = nouveauNoeud;
 
-	heapifyUp(heap, i); // Réajuster pour garder la propriété du tas min
+	heapifyUp(heap, i);
 }
 
 void heapifyDown(Arbre *heap, int i)
@@ -167,10 +171,46 @@ Noeud *construireArbreHuffman(int frequence[])
 	return extraireMin(heap);
 }
 
+char *codesHuffman[Max_Val_ASCII];
+
+// Fonction récursive pour générer les codes Huffman
+void genererCodes(Noeud *racine, char *code, int profondeur)
+{
+	if (!racine)
+		return;
+
+	// Si on est sur une feuille (caractère réel)
+	if (!racine->gauche && !racine->droite)
+	{
+		code[profondeur] = '\0'; // Fin de chaîne
+		codesHuffman[(unsigned char)racine->caractere] = strdup(code);
+		printf("Caractère '%c' -> Code Huffman : %s\n", racine->caractere, code);
+		return;
+	}
+
+	// Ajoute '0' en allant à gauche
+	code[profondeur] = '0';
+	genererCodes(racine->gauche, code, profondeur + 1);
+
+	// Ajoute '1' en allant à droite
+	code[profondeur] = '1';
+	genererCodes(racine->droite, code, profondeur + 1);
+}
+
 int main()
 {
 	int frequence[Max_Val_ASCII];
+
 	FillTabHzChar("test.txt", frequence);
+
+	printf("\nFréquence des caractères :\n");
 	ShowHz(frequence);
+
+	Noeud *racine = construireArbreHuffman(frequence);
+
+	char code[Max_Val_ASCII]; // Stock temporaire du code
+	printf("\nCodes Huffman générés :\n");
+	genererCodes(racine, code, 0);
+
 	return 0;
 }
