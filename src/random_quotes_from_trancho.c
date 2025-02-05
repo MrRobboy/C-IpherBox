@@ -9,12 +9,10 @@ void random_quotes_from_trancho() {
         "Bienvenue en Langage C",
         "Avez vous fini tout les exercices du support de cours ?",
         "Ce projet vaut au moins 20/20",
-        "Vous gagnez une souris imprimer en 3D bravo les eleves",
-
+        "Vous gagnez une souris imprimee en 3D bravo les eleves",
         "Content de vous revoir Mr. Trancho",
         "C isn't hard: void (*(*f[])())()",
-        
-
+        "Le C C trivial, bien entendu",
         
     };
 
