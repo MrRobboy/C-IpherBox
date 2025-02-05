@@ -1,0 +1,10 @@
+# Exclure le dossier VSCode
+.vscode/
+
+# Exclure les fichiers de logs et temporaires
+*.log
+*.tmp
+
+# Exclure les fichiers système
+.DS_Store
+Thumbs.db
